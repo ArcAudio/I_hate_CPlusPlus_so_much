@@ -22,7 +22,7 @@ class Voice
         //osc_.SetWaveform(Oscillator::WAVE_POLYBLEP_SAW);
         env_.Init(samplerate);
         env_.SetSustainLevel(0.5f);
-        env_.SetTime(ADSR_SEG_ATTACK, 0.005f);
+        env_.SetTime(ADSR_SEG_ATTACK, 0.005f); // gut the envelope as the string already has decay?
         env_.SetTime(ADSR_SEG_DECAY, 0.005f);
         env_.SetTime(ADSR_SEG_RELEASE, 0.2f);
     }
@@ -32,10 +32,10 @@ class Voice
         if(active_)
         {
             float sig, amp;
-            amp = env_.Process(env_gate_);
+            amp = env_.Process(env_gate_); // what to do here though?
             if(!env_.IsRunning())
                 active_ = false;
-            //sig = osc_.Process();
+            //sig = osc_.Process(); // hmmm what to do here? process in poly pluck wants note vale/trigger
 
             return sig * (velocity_ / 127.f) * amp;
         }
@@ -47,11 +47,10 @@ class Voice
         note_     = note;
         velocity_ = velocity;
         //osc_.SetFreq(mtof(note_));
-      
-        //osc_.Process(trig, note_); // this is what needs to happen
+        
         active_   = true;
         env_gate_ = true;
-        
+        osc_.Process(trig, note_);
     }
 
     void OnNoteOff() { env_gate_ = false; }
@@ -101,6 +100,7 @@ class VoiceManager
         if(v == NULL)
             return;
         v->OnNoteOn(notenumber, velocity);
+       // trig = 1.0;
     }
 
     void OnNoteOff(float notenumber, float velocity)
@@ -111,6 +111,7 @@ class VoiceManager
             if(v->IsActive() && v->GetNote() == notenumber)
             {
                 v->OnNoteOff();
+                //trig = 0;
             }
         }
     }
@@ -140,7 +141,7 @@ class VoiceManager
     }
 };
 
-static VoiceManager<24> voice_handler;
+static VoiceManager<12> voice_handler;
 
 void AudioCallback(AudioHandle::InputBuffer  in,
                    AudioHandle::OutputBuffer out,
@@ -149,18 +150,22 @@ void AudioCallback(AudioHandle::InputBuffer  in,
     float sum = 0.f;
     hw.ProcessDigitalControls();
     hw.ProcessAnalogControls();
-    float *out_left, *out_right;
-    out_left  = out[0];
-    out_right = out[1];
+
 
     //voice_handler.SetCutoff(250.f + hw.GetKnobValue(hw.KNOB_1) * 8000.f);
     //voice_handler.SetSomethingHere
     //for(size_t i = 0; i < size; i += 2)??
     for(size_t i = 0; i < size; i ++)
     {
+        //sum = 0.0;
+        if (in[0][i] > 0.01)
+		 {
+		    trig = in[0][i];
+		 }
+
         sum        = voice_handler.Process() * 0.5f;
-        out_left   = sum;
-        out_right  = sum;
+        out[0][i] = sum;
+        out[1][i] = sum;
     }
 }
 
