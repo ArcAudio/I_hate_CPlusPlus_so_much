@@ -47,10 +47,11 @@ class Voice
         note_     = note;
         velocity_ = velocity;
         //osc_.SetFreq(mtof(note_));
-        
+      
+        //osc_.Process(trig, note_); // this is what needs to happen
         active_   = true;
         env_gate_ = true;
-        //Process(trig, note_);
+        
     }
 
     void OnNoteOff() { env_gate_ = false; }
